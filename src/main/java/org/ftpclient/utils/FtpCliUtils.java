@@ -132,7 +132,7 @@ public class FtpCliUtils {
      * @param inputStream 文件输入流
      * @return java.lang.String
      */
-    public String upFileToDailyDir(String fileName, InputStream inputStream) throws IOException{
+    public String uploadFileToDailyDir(String fileName, InputStream inputStream) throws IOException{
         changeWorkingDirectory(ftpBasePath);
         SimpleDateFormat dateFormat = new SimpleDateFormat("/yyyy/MM/dd");
         String formatDatePath = dateFormat.format(new Date());
@@ -142,6 +142,19 @@ public class FtpCliUtils {
         return formatDatePath + "/" + fileName;
 
     }
+
+    /**
+     * <p>Description:[根据uploadFileToDailyDir返回的路径，从ftp下载文件到指定输出流中]</p>
+     *
+     * @param dailyDirFilePath 方法uploadFileToDailyDir返回的路径
+     * @param outputStream     输出流
+     */
+    public void downloadFileFromDailyDir(String dailyDirFilePath, OutputStream outputStream) throws IOException{
+        changeWorkingDirectory(ftpBasePath);
+        String ftpRealFilePath = DAILY_FILE_PATH + dailyDirFilePath;
+        ftpClient.retrieveFile(ftpRealFilePath, outputStream);
+    }
+
 
 
 
@@ -163,6 +176,32 @@ public class FtpCliUtils {
     }
 
     /**
+     * <p>Description:[获取ftp上指定文件名到输出流中]</p>
+
+     * @param ftpFileName 文件在ftp上的路径  如绝对路径 /home/ftpuser/123.txt 或者相对路径 123.txt
+     * @param out         输出流
+     */
+    public void retrieveFile(String ftpFileName,OutputStream out) throws IOException{
+        try {
+            FTPFile[] fileInfoArray = this.ftpClient.listFiles(ftpFileName);
+            if (fileInfoArray == null || fileInfoArray.length == 0) {
+                throw new FileNotFoundException("File '" + ftpFileName + "' was not found on FTP server.");
+            }
+
+            FTPFile fileInfo = fileInfoArray[0];
+            if (fileInfo.getSize() > Integer.MAX_VALUE) {
+                throw new IOException("File '" + ftpFileName + "' is too large.");
+            }
+            if(!this.ftpClient.retrieveFile(ftpFileName,out)){
+                throw new IOException("Error loading file '" + ftpFileName + "' from FTP server. Check FTP permissions and path.");
+            }
+            out.flush();
+        } finally {
+            closeStream(out);
+        }
+    }
+
+    /**
      * <p>Description:[将输入流存储到指定的ftp路径下]</p>
      *
      * @param ftpFileName 文件在ftp上的路径 如绝对路径 /home/ftpuser/123.txt 或者相对路径 123.txt
@@ -177,6 +216,60 @@ public class FtpCliUtils {
             e.printStackTrace();
         }finally {
             closeStream(in);
+        }
+    }
+
+    /**
+     * <p>Description:[根据文件ftp路径名称删除文件]</p>
+     * @param ftpFileName 文件ftp路径名称
+     * @throws IOException
+     */
+    public void deleteFile(String ftpFileName) throws IOException{
+        if(!this.ftpClient.deleteFile(ftpFileName)){
+            throw new IOException("Can't remove file '" + ftpFileName + "' from FTP server.");
+        }
+    }
+
+    /**
+     * <p>Description:[上传文件到ftp]</p>
+     * @param ftpFileName 上传到ftp文件路径名称
+     * @param localFile   本地文件路径名称
+     * @throws IOException
+     */
+    public void upload(String ftpFileName,File localFile) throws IOException{
+        if(!localFile.exists()){
+            throw new IOException("Can't upload '" + localFile.getAbsolutePath() + "'. This file doesn't exist.");
+        }
+        InputStream in = null;
+        try{
+            in = new BufferedInputStream(new FileInputStream(localFile));
+            if(!this.ftpClient.storeFile(ftpFileName,in)){
+                throw new IOException("Can't upload file '" + ftpFileName + "' to FTP server. Check FTP permissions and path.");
+            }
+        }finally {
+            closeStream(in);
+        }
+    }
+
+    public void uploadDir(String remotePath,String localPath) throws  IOException{
+        localPath = localPath.replaceAll("\\\\","/");
+        File file = new File(localPath);
+        if(file.exists()){
+            if(!this.ftpClient.changeWorkingDirectory(remotePath)){
+                this.ftpClient.makeDirectory(remotePath);
+                this.ftpClient.changeWorkingDirectory(remotePath);
+            }
+            File[] files = file.listFiles();
+            if(files != null){
+                for (File f:files) {
+                    if(f.isDirectory() && !f.getName().equals(".") && !f.getName().equals("..")){
+                        uploadDir(remotePath + "/" + f.getName(), f.getPath());
+                    }else {
+                        upload(remotePath + "/" + f.getName(),f);
+                    }
+                }
+            }
+
         }
     }
 
