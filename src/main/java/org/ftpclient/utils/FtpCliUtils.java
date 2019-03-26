@@ -143,19 +143,40 @@ public class FtpCliUtils {
 
     }
 
-    private void changeWorkingDirectory(String ftpBasePath) {
+
+
+    /**
+     * <p>Description:[改变工作目录]</p>
+     * @param dir ftp服务器上目录
+     * @return boolean 改变成功返回true
+     */
+    private boolean changeWorkingDirectory(String dir) {
+        if(!this.ftpClient.isConnected()){
+            return false;
+        }
         try {
-            this.ftpClient.changeWorkingDirectory(ftpBasePath);
+            return this.ftpClient.changeWorkingDirectory(dir);
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return false;
     }
 
-    private void storeFile(String fileName, InputStream inputStream) {
+    /**
+     * <p>Description:[将输入流存储到指定的ftp路径下]</p>
+     *
+     * @param ftpFileName 文件在ftp上的路径 如绝对路径 /home/ftpuser/123.txt 或者相对路径 123.txt
+     * @param in          输入流
+     */
+    private void storeFile(String ftpFileName, InputStream in) {
         try {
-            this.ftpClient.appendFile(fileName,inputStream);
+            if(!this.ftpClient.storeFile(ftpFileName,in)){
+                throw new IOException("Can't upload file '" + ftpFileName + "' to FTP server. Check FTP permissions and path.");
+            }
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            closeStream(in);
         }
     }
 
@@ -176,19 +197,40 @@ public class FtpCliUtils {
             if(ftpFile != null){
                 if(ftpFile.isDirectory() && !ftpFile.getName().equals(".") && !ftpFile.getName().equals("..")){
                     downLoadDir(remotePath + "/" + ftpFile.getName(),localPath + "/" + ftpFile.getName());
-                }else if(ftpFile.isFile()){
-                    downLoad(remotePath + "/" + ftpFile.getName(),new File(localPath + "/" + ftpFile.getName()));
+                }else{
+                    download(remotePath + "/" + ftpFile.getName(),new File(localPath + "/" + ftpFile.getName()));
                 }
             }
         }
 
     }
 
-    private void downLoad(String remotePath, File localPath) {
+    /**
+     * <p>Description:[下载ftp文件到本地上]</p>
+     *
+     * @param ftpFileName ftp文件路径名称
+     * @param localFile   本地文件路径名称
+     */
+    public void download(String ftpFileName, File localFile) throws IOException {
+        OutputStream out = null;
         try {
-            this.ftpClient.appendFile(remotePath, new FileInputStream(localPath));
-        } catch (IOException e) {
-            e.printStackTrace();
+            FTPFile[] fileInfoArray = ftpClient.listFiles(ftpFileName);
+            if (fileInfoArray == null || fileInfoArray.length == 0) {
+                throw new FileNotFoundException("File " + ftpFileName + " was not found on FTP server.");
+            }
+
+            FTPFile fileInfo = fileInfoArray[0];
+            if (fileInfo.getSize() > Integer.MAX_VALUE) {
+                throw new IOException("File " + ftpFileName + " is too large.");
+            }
+
+            out = new BufferedOutputStream(new FileOutputStream(localFile));
+            if (!ftpClient.retrieveFile(ftpFileName, out)) {
+                throw new IOException("Error loading file " + ftpFileName + " from FTP server. Check FTP permissions and path.");
+            }
+            out.flush();
+        } finally {
+            closeStream(out);
         }
     }
 
