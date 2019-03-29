@@ -1,4 +1,4 @@
-package org.ftpclient.org.ftpclient.ui;
+package org.ftpclient.ui;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
