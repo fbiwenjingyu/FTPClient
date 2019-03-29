@@ -1,15 +1,23 @@
 package org.ftpclient.org.ftpclient.ui;
 
 import javax.swing.*;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.File;
+
+import static javax.swing.tree.TreeSelectionModel.*;
 
 public class FTPClientFrame extends JFrame implements ActionListener {
     public static final int WIDTH = 1200;
     public static final int HEIGHT = 850;
+    private File[] roots = File.listRoots();
     public static void main(String[] args) {
         FTPClientFrame frame = new FTPClientFrame();
     }
@@ -75,21 +83,27 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         JLabel usernameLabel = new JLabel("用户名(U):");
         JLabel passwordLabel = new JLabel("密码(W):");
         JLabel portLabel = new JLabel("端口(P):");
-        JTextField hostText = new JTextField();
-        JTextField usernameText = new JTextField();
-        JTextField passwordText = new JTextField();
-        JTextField portText = new JTextField();
+        JTextField hostText = new JTextField("localhost",10);
+        JTextField usernameText = new JTextField("",10);
+        JTextField passwordText = new JTextField("",10);
+        JTextField portText = new JTextField("21",5);
         hostLabel.setLabelFor(hostText);
         usernameLabel.setLabelFor(usernameText);
         passwordLabel.setLabelFor(passwordText);
         portLabel.setLabelFor(portText);
         JButton connect = new JButton("快速连接(Q)");
-        JTextArea message = new JTextArea();
+        JTextArea message = new JTextArea(5,120);
+        message.setLineWrap(true);
+        message.setEditable(false);
+        JScrollPane js=new JScrollPane(message);
+        js.setVerticalScrollBarPolicy(
+                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
         JPanel p1 = new JPanel();
         JPanel p2 = new JPanel();
-        p2.add(message);
-        p1.setLayout(new FlowLayout());
+        p2.add(js);
+       // p1.setLayout(new GridLayout(1,9));
+        p1.setLayout(new FlowLayout(FlowLayout.LEFT));
         p1.add(hostLabel);
         p1.add(hostText);
         p1.add(usernameLabel);
@@ -98,6 +112,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         p1.add(passwordText);
         p1.add(portLabel);
         p1.add(portText);
+        p1.add(connect);
 
         top.setLayout(new BorderLayout());
         top.add(p1,BorderLayout.NORTH);
@@ -106,10 +121,152 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     }
 
     private void initCenter(){
+        JPanel parentCenter = new JPanel();
+        parentCenter.setLayout(new GridLayout(2,2));
+        JPanel left = new JPanel();
+        left.setLayout(new BorderLayout());
+        JPanel right = new JPanel();
+        right.setLayout(new BorderLayout());
+
+        JPanel leftOfTop = new JPanel();
+        FlowLayout f= (FlowLayout)leftOfTop.getLayout();
+        f.setHgap(0);//水平间距
+        JPanel leftOfBottom = new JPanel();
+
+        leftOfBottom.setLayout(new BorderLayout());
+
+        JPanel rightOfTop = new JPanel();
+        FlowLayout fRight= (FlowLayout)rightOfTop.getLayout();
+        fRight.setHgap(0);//水平间距
+        JPanel rightOfBottom = new JPanel();
+
+        rightOfBottom.setLayout(new BorderLayout());
+
+
+
+
+        // 创建根节点
+        DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode("计算机",true);
+
+        for(File file : roots){
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode(file,true);
+            rootNode.add(node);
+
+
+        }
+
+
+        JTree tree = new JTree(rootNode);
+        tree.setShowsRootHandles(true);
+        tree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
+        tree.addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
+            public void valueChanged(TreeSelectionEvent e) {
+                JTree tree = (JTree) e.getSource();
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+                if(node.getLevel() >= 1){
+                    File file = (File) node.getUserObject();
+                    final File[] subFiles = file.listFiles();
+                    for(File subFile : subFiles){
+                        if(subFile.isDirectory()){
+                            DefaultMutableTreeNode chileNode = new DefaultMutableTreeNode(subFile,true);
+                            node.add(chileNode);
+                        }
+                    }
+                }
+            }
+        });
+
+        // 设置树节点可编辑
+        tree.setEditable(true);
+        JScrollPane scrollPane = new JScrollPane();
+        scrollPane.setPreferredSize(new Dimension(600,200));
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getViewport().add(tree);
+
+        tree.setPreferredSize(scrollPane.getPreferredSize());
+        leftOfBottom.add(scrollPane, BorderLayout.CENTER);
+
+
+
+        leftOfTop.setLayout(new FlowLayout(FlowLayout.LEFT));
+        JLabel lcoalSite= new JLabel("本地站点:");
+        JComboBox leftbox = new JComboBox();
+        leftbox.setPreferredSize(new Dimension(520,20));
+        leftOfTop.add(lcoalSite);
+        leftOfTop.add(leftbox);
+        left.add(leftOfTop,BorderLayout.NORTH);
+        left.add(leftOfBottom,BorderLayout.CENTER);
+
+        if(roots.length >= 1){
+            leftbox.addItem(roots[0].getPath());
+        }
+
+
+
+
+        rightOfTop.setLayout(new FlowLayout(FlowLayout.LEFT));
+        JLabel romoteSite= new JLabel("远程站点:");
+        JComboBox boxRight = new JComboBox();
+        boxRight.setPreferredSize(new Dimension(520,20));
+        rightOfTop.add(romoteSite);
+        rightOfTop.add(boxRight);
+        right.add(rightOfTop,BorderLayout.NORTH);
+        right.add(rightOfBottom,BorderLayout.CENTER);
+
+
+        JTree treeRight = new JTree();
+        treeRight.setShowsRootHandles(true);
+
+        // 设置树节点可编辑
+        treeRight.setEditable(true);
+        JScrollPane scrollPaneRight = new JScrollPane();
+        scrollPaneRight.setPreferredSize(new Dimension(600,200));
+        scrollPaneRight.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPaneRight.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPaneRight.getViewport().add(treeRight);
+
+        treeRight.setPreferredSize(scrollPane.getPreferredSize());
+        rightOfBottom.add(scrollPaneRight, BorderLayout.CENTER);
+
+
+
+        parentCenter.add(left);
+        parentCenter.add(right);
+
+
+        JTable letfTable = new JTable();
+        JTable rightTable = new JTable();
+        JScrollPane leftTablePanel = new JScrollPane(letfTable);
+        leftTablePanel.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        JScrollPane rightTablePanel = new JScrollPane(rightTable);
+        rightTablePanel.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        parentCenter.add(leftTablePanel);
+        parentCenter.add(rightTablePanel);
+
+
+        this.add(parentCenter,BorderLayout.CENTER);
+
+
+
+
+
+
 
     }
 
     private void initBottom(){
+        JTree jtree = new JTree();
+        JScrollPane scrollPane = new JScrollPane(jtree);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setPreferredSize(new Dimension(1200,150));
+        tabbedPane.addTab("队列",scrollPane);
+        tabbedPane.addTab("已上传",null);
+        tabbedPane.addTab("已下载",null);
+        this.add(tabbedPane,BorderLayout.SOUTH);
+
 
     }
 
