@@ -1,8 +1,5 @@
 package org.ftpclient;
 
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
@@ -29,16 +26,7 @@ public class App
         }
         System.out.println(instance);
 
-        methodB();
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void methodA() {
-        methodB();
-    }
 
-    @Transactional(propagation = Propagation.MANDATORY)
-    public static void methodB() {
-        // do something
-    }
 }

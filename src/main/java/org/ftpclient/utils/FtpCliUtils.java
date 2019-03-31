@@ -55,7 +55,7 @@ public class FtpCliUtils {
 
     /**
      * 创建自定义属性的ftp客户端
-     * @param host     机名或者ip地址
+     * @param host     主机名或者ip地址
      * @param port     ftp端口
      * @param username ftp用户名
      * @param password ftp密码

@@ -1,16 +1,18 @@
 package org.ftpclient.ui;
 
+import org.ftpclient.model.FileModel;
+
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.File;
+import java.util.Enumeration;
 
 import static javax.swing.tree.TreeSelectionModel.*;
 
@@ -18,6 +20,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     public static final int WIDTH = 1200;
     public static final int HEIGHT = 850;
     private File[] roots = File.listRoots();
+    JTree tree;
     public static void main(String[] args) {
         FTPClientFrame frame = new FTPClientFrame();
     }
@@ -131,6 +134,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         JPanel leftOfTop = new JPanel();
         FlowLayout f= (FlowLayout)leftOfTop.getLayout();
         f.setHgap(0);//水平间距
+        JComboBox leftbox = new JComboBox();
         JPanel leftOfBottom = new JPanel();
 
         leftOfBottom.setLayout(new BorderLayout());
@@ -146,17 +150,17 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
 
         // 创建根节点
-        DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode("计算机",true);
+        FileModel rootModel = new FileModel(new File("/"),"计算机");
+        DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(rootModel,true);
 
         for(File file : roots){
-            DefaultMutableTreeNode node = new DefaultMutableTreeNode(file,true);
+            FileModel fileModel = new FileModel(file,file.getPath());
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode(fileModel,true);
             rootNode.add(node);
-
-
         }
 
 
-        JTree tree = new JTree(rootNode);
+        tree = new JTree(rootNode);
         tree.setShowsRootHandles(true);
         tree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
         tree.addTreeSelectionListener(new TreeSelectionListener() {
@@ -164,13 +168,17 @@ public class FTPClientFrame extends JFrame implements ActionListener {
             public void valueChanged(TreeSelectionEvent e) {
                 JTree tree = (JTree) e.getSource();
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-                if(node.getLevel() >= 1){
-                    File file = (File) node.getUserObject();
-                    final File[] subFiles = file.listFiles();
-                    for(File subFile : subFiles){
-                        if(subFile.isDirectory()){
-                            DefaultMutableTreeNode chileNode = new DefaultMutableTreeNode(subFile,true);
-                            node.add(chileNode);
+                if(node != null && node.getLevel() >= 1){
+                    FileModel file = (FileModel) node.getUserObject();
+                    leftbox.addItem(file.getFile().getPath());
+                    final File[] subFiles = file.getFile().listFiles();
+                    if(subFiles != null && subFiles.length > 0){
+                        for(File subFile : subFiles){
+                            if(subFile.isDirectory()){
+                                FileModel fm = new FileModel(subFile,subFile.getName());
+                                DefaultMutableTreeNode chileNode = new DefaultMutableTreeNode(fm,true);
+                                node.add(chileNode);
+                            }
                         }
                     }
                 }
@@ -192,7 +200,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
         leftOfTop.setLayout(new FlowLayout(FlowLayout.LEFT));
         JLabel lcoalSite= new JLabel("本地站点:");
-        JComboBox leftbox = new JComboBox();
+
         leftbox.setPreferredSize(new Dimension(520,20));
         leftOfTop.add(lcoalSite);
         leftOfTop.add(leftbox);
@@ -203,7 +211,19 @@ public class FTPClientFrame extends JFrame implements ActionListener {
             leftbox.addItem(roots[0].getPath());
         }
 
+        leftbox.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if(e.getStateChange() == ItemEvent.SELECTED){
+                    String item = (String) e.getItem();
+                    System.out.println("selected item : " + item);
+                    DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                    visitAllNodes(root,item);
+                }
 
+
+            }
+        });
 
 
         rightOfTop.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -238,6 +258,8 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
         JTable letfTable = new JTable();
         JTable rightTable = new JTable();
+
+
         JScrollPane leftTablePanel = new JScrollPane(letfTable);
         leftTablePanel.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         JScrollPane rightTablePanel = new JScrollPane(rightTable);
@@ -253,6 +275,25 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
 
 
+
+    }
+
+    private void visitAllNodes(DefaultMutableTreeNode node,String item) {
+        if(node != null){
+            FileModel fileModel = (FileModel) node.getUserObject();
+            if(fileModel.getFile().getPath().equals(item)){
+                TreePath treePath = new TreePath(node.getPath());
+                //tree.expandPath(treePath);
+                tree.scrollPathToVisible(treePath);
+                return;
+            }
+            if(node.getChildCount() > 0){
+                for (Enumeration e = node.children(); e.hasMoreElements(); ) {
+                    DefaultMutableTreeNode n = (DefaultMutableTreeNode)e.nextElement();
+                    visitAllNodes(n,item);//若有子节点则再次查找
+                }
+            }
+        }
 
     }
 
