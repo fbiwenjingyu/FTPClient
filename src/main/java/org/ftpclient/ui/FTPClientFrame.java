@@ -1,17 +1,23 @@
 package org.ftpclient.ui;
 
 import org.ftpclient.model.FileModel;
+import org.ftpclient.model.MyDefaultTableCellRenderer;
+import org.ftpclient.model.MyDefaultTreeCellRenderer;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeNode;
-import javax.swing.tree.TreePath;
-import javax.swing.tree.TreeSelectionModel;
+import javax.swing.filechooser.FileSystemView;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
+import javax.swing.table.TableModel;
+import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Enumeration;
 
 import static javax.swing.tree.TreeSelectionModel.*;
@@ -19,8 +25,17 @@ import static javax.swing.tree.TreeSelectionModel.*;
 public class FTPClientFrame extends JFrame implements ActionListener {
     public static final int WIDTH = 1200;
     public static final int HEIGHT = 850;
+    private static final double KB = 1024;
+    private static final double MB = 1024 * 1024;
+    private static final double GB = 1024 * 1024 * 1024;
+    public static final String dateFormat = "yyyy/MM/dd HH:mm:ss";
+    public static final SimpleDateFormat simpleDateFormat=new SimpleDateFormat(dateFormat);
     private File[] roots = File.listRoots();
     JTree tree;
+
+    JTable letfTable = new JTable();
+    JTable rightTable = new JTable();
+    private static final String[] columnNames  = {"文件名","文件大小","文件类型","最近修改"};
     public static void main(String[] args) {
         FTPClientFrame frame = new FTPClientFrame();
     }
@@ -162,14 +177,24 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
         tree = new JTree(rootNode);
         tree.setShowsRootHandles(true);
+
         tree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
         tree.addTreeSelectionListener(new TreeSelectionListener() {
             @Override
             public void valueChanged(TreeSelectionEvent e) {
                 JTree tree = (JTree) e.getSource();
+
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
+                FileModel file = (FileModel) node.getUserObject();
+
                 if(node != null && node.getLevel() >= 1){
-                    FileModel file = (FileModel) node.getUserObject();
+//                    if(node.getLevel() == 1){
+//                        ((DefaultTreeCellRenderer)tree.getCellRenderer()).setOpenIcon(getSmallIcon(new File("C://")));
+//                    }else if(node.getLevel()>1){
+//                        ((DefaultTreeCellRenderer)tree.getCellRenderer()).setOpenIcon(getSmallIcon(file.getFile()));
+//                    }
+
+                    displayLeftTable(file);
                     leftbox.addItem(file.getFile().getPath());
                     final File[] subFiles = file.getFile().listFiles();
                     if(subFiles != null && subFiles.length > 0){
@@ -184,6 +209,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                 }
             }
         });
+        tree.setCellRenderer(new MyDefaultTreeCellRenderer());
 
         // 设置树节点可编辑
         tree.setEditable(true);
@@ -256,8 +282,13 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         parentCenter.add(right);
 
 
-        JTable letfTable = new JTable();
-        JTable rightTable = new JTable();
+        //JTable letfTable = new JTable();
+        //JTable rightTable = new JTable();
+
+
+
+        TableModel leftDataModel = new DefaultTableModel(new String[][] {},columnNames);
+        letfTable.setModel(leftDataModel);
 
 
         JScrollPane leftTablePanel = new JScrollPane(letfTable);
@@ -277,6 +308,56 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
 
     }
+
+    private void displayLeftTable(FileModel file) {
+        File parent = file.getFile();
+        File[] files = parent.listFiles();
+        Object[][] data = new Object[files.length][4];
+        if(files != null && files.length > 0){
+            for(int i=0;i<files.length;i++){
+                File f = files[i];
+                data[i][0] = new JLabel();
+                ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
+                ((JLabel)data[i][0]).setText(f.getName());
+                data[i][1] = getFileSize(f);
+                data[i][2] = f.isDirectory() ? "文件夹":"文件";
+                data[i][3] = formatDate(f.lastModified());
+            }
+        }
+        TableModel model = new DefaultTableModel(data,columnNames);
+        letfTable.setModel(model);
+        TableColumnModel columnModel = letfTable.getColumnModel();
+        TableColumn column = columnModel.getColumn(0);
+        column.setCellRenderer(new MyDefaultTableCellRenderer());
+
+    }
+
+    private String getFileSize(File f) {
+        if(f.isDirectory()) return "";
+        long length = f.length();
+        long sizeOfGB = (long) (length / GB + 0.5);
+        long sizeOfMB = (long) (length / MB + 0.5);
+        long sizeOfKB = (long) (length / KB + 0.5);
+        if(sizeOfGB > 0) return sizeOfGB + "GB";
+        if(sizeOfMB > 0) return  sizeOfMB + "MB";
+        if(sizeOfKB > 0) return  sizeOfKB + "KB";
+        return length + "B";
+    }
+
+    private String formatDate(long lastModified) {
+       return simpleDateFormat.format(new Date(lastModified));
+    }
+
+    private static Icon getSmallIcon( File f )
+    {
+        if ( f != null && f.exists() )
+        {
+            FileSystemView fsv = FileSystemView.getFileSystemView();
+            return(fsv.getSystemIcon( f ) );
+        }
+        return(null);
+    }
+
 
     private void visitAllNodes(DefaultMutableTreeNode node,String item) {
         if(node != null){
