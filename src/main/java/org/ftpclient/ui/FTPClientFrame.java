@@ -169,9 +169,12 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(rootModel,true);
 
         for(File file : roots){
-            FileModel fileModel = new FileModel(file,file.getPath());
+            FileModel fileModel = new FileModel(file,file.getPath());//注意，这里添加的是磁盘的分区，不能用file.getName()方法，否则方法返回的值为空
             DefaultMutableTreeNode node = new DefaultMutableTreeNode(fileModel,true);
             rootNode.add(node);
+            if(file.isDirectory()){
+                //addNode(node,file);
+            }
         }
 
 
@@ -179,13 +182,16 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         tree.setShowsRootHandles(true);
 
         tree.getSelectionModel().setSelectionMode(SINGLE_TREE_SELECTION);
-        tree.addTreeSelectionListener(new TreeSelectionListener() {
+        tree.addTreeSelectionListener(new TreeSelectionListener() { //本地树型文件夹鼠标点击事件
             @Override
             public void valueChanged(TreeSelectionEvent e) {
                 JTree tree = (JTree) e.getSource();
-
+                FileModel file = null;
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) tree.getLastSelectedPathComponent();
-                FileModel file = (FileModel) node.getUserObject();
+                if(node != null){
+                    file = (FileModel) node.getUserObject();
+                }
+                //file = (FileModel) node.getUserObject();
 
                 if(node != null && node.getLevel() >= 1){
 //                    if(node.getLevel() == 1){
@@ -196,6 +202,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
                     displayLeftTable(file);
                     leftbox.addItem(file.getFile().getPath());
+                    leftbox.setSelectedIndex(leftbox.getItemCount() - 1);
                     final File[] subFiles = file.getFile().listFiles();
                     if(subFiles != null && subFiles.length > 0){
                         for(File subFile : subFiles){
@@ -228,6 +235,14 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         JLabel lcoalSite= new JLabel("本地站点:");
 
         leftbox.setPreferredSize(new Dimension(520,20));
+//        leftbox.addItemListener(new ItemListener() {
+//            @Override
+//            public void itemStateChanged(ItemEvent e) {
+//                String item = (String) e.getItem();
+//                System.out.println(item);
+//                displayLeftTable(new FileModel(new File(item),new File(item).getName()));
+//            }
+//        });
         leftOfTop.add(lcoalSite);
         leftOfTop.add(leftbox);
         left.add(leftOfTop,BorderLayout.NORTH);
@@ -237,7 +252,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
             leftbox.addItem(roots[0].getPath());
         }
 
-        leftbox.addItemListener(new ItemListener() {
+        leftbox.addItemListener(new ItemListener() {//文件夹路径下拉列表框item切换事件
             @Override
             public void itemStateChanged(ItemEvent e) {
                 if(e.getStateChange() == ItemEvent.SELECTED){
@@ -245,6 +260,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                     System.out.println("selected item : " + item);
                     DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
                     visitAllNodes(root,item);
+                    displayLeftTable(new FileModel(new File(item),new File(item).getName()));
                 }
 
 
@@ -289,6 +305,28 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
         TableModel leftDataModel = new DefaultTableModel(new String[][] {},columnNames);
         letfTable.setModel(leftDataModel);
+        letfTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+        letfTable.addMouseListener(new MouseAdapter() {//本地表格单元鼠标双击事件
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if(e.getClickCount() == 2){
+                    int row =((JTable)e.getSource()).rowAtPoint(e.getPoint()); //获得行位置
+                    FileModel cellVal = (FileModel) letfTable.getValueAt(row, 0);
+                    System.out.println("clicked cell value is : " + cellVal);
+                    if(cellVal != null){
+                        if(cellVal.getFile().isFile()){
+                            return;
+                        }
+                        DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                        leftbox.addItem(cellVal.getFile().getPath());
+                        leftbox.setSelectedIndex(leftbox.getItemCount() - 1);
+
+                    }
+
+                }
+            }
+        });
 
 
         JScrollPane leftTablePanel = new JScrollPane(letfTable);
@@ -309,27 +347,109 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
     }
 
+    private void addNode(DefaultMutableTreeNode parentNode, File file) {
+        File[] files = file.listFiles();
+        if(files != null && files.length > 0){
+            for(File f : files){
+                if(f.isDirectory()){
+                    DefaultMutableTreeNode node = new DefaultMutableTreeNode(new FileModel(f, f.getName()),true);
+                    parentNode.add(node);
+                    addNode(node,f);
+                }
+            }
+        }
+    }
+
+    private void displayLeftTable2(FileModel file) {
+        File parent = file.getFile();
+        File[] files = parent.listFiles();
+        Object[][] data = new Object[files.length + 1][4];
+        if (files != null && files.length > 0) {
+            for (int i = 0; i < files.length + 1; i++) {
+                if (i == 0) {
+                    File f = parent;
+                    data[i][0] = new FileModel(f, "..");
+                    data[i][1] = getFileSize(f);
+                    data[i][2] = f.isDirectory() ? "文件夹" : "文件";
+                    data[i][3] = formatDate(f.lastModified());
+                } else {
+                    File f = files[i - 1];
+                    data[i][0] = new FileModel(f, f.getName());
+                    data[i][1] = getFileSize(f);
+                    data[i][2] = f.isDirectory() ? "文件夹" : "文件";
+                    data[i][3] = formatDate(f.lastModified());
+                }
+
+            }
+        }
+        DefaultTableModel model = new DefaultTableModel(data, columnNames) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+
+        letfTable.setModel(model);
+    }
+
     private void displayLeftTable(FileModel file) {
         File parent = file.getFile();
         File[] files = parent.listFiles();
-        Object[][] data = new Object[files.length][4];
+        if(files == null) {
+            return;
+        }
+        Object[][] data = new Object[files.length + 1][4];
         if(files != null && files.length > 0){
-            for(int i=0;i<files.length;i++){
-                File f = files[i];
-                data[i][0] = new JLabel();
-                ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
-                ((JLabel)data[i][0]).setText(f.getName());
-                data[i][1] = getFileSize(f);
-                data[i][2] = f.isDirectory() ? "文件夹":"文件";
-                data[i][3] = formatDate(f.lastModified());
+            for(int i=0;i<files.length + 1;i++){
+                if(i==0){
+                    File f = parent;
+//                    data[i][0] = new JLabel();
+//                    ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
+//                    ((JLabel)data[i][0]).setText("..");
+                    data[i][0] = new FileModel(f,"..");
+                    data[i][1] = getFileSize(f);
+                    data[i][2] = f.isDirectory() ? "文件夹":"文件";
+                    data[i][3] = formatDate(f.lastModified());
+                }else {
+                    File f = files[i - 1];
+//                    data[i][0] = new JLabel();
+//                    ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
+//                    ((JLabel)data[i][0]).setText(f.getName());
+                    data[i][0] = new FileModel(f,f.getName());
+                    data[i][1] = getFileSize(f);
+                    data[i][2] = f.isDirectory() ? "文件夹":"文件";
+                    data[i][3] = formatDate(f.lastModified());
+                }
+
             }
         }
-        TableModel model = new DefaultTableModel(data,columnNames);
+        DefaultTableModel model = new DefaultTableModel(data,columnNames){
+            public boolean isCellEditable(int row, int column)
+            {
+                return false;
+            }
+        };
+
+
         letfTable.setModel(model);
+
         TableColumnModel columnModel = letfTable.getColumnModel();
         TableColumn column = columnModel.getColumn(0);
         column.setCellRenderer(new MyDefaultTableCellRenderer());
-
+//        letfTable.addMouseListener(new MouseAdapter() {
+//            @Override
+//            public void mouseClicked(MouseEvent e) {
+//                if(e.getClickCount() == 2){
+//                    int row =((JTable)e.getSource()).rowAtPoint(e.getPoint()); //获得行位置
+//                    FileModel cellVal = (FileModel) letfTable.getValueAt(row, 0);
+//                    System.out.println("clicked cell value is : " + cellVal);
+//                    if(cellVal != null){
+//                        displayLeftTable2(cellVal);
+//                    }
+//
+//                }
+//            }
+//        });
     }
 
     private String getFileSize(File f) {
