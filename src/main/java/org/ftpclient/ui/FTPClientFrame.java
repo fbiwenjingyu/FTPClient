@@ -1,8 +1,10 @@
 package org.ftpclient.ui;
 
+import org.apache.commons.lang3.StringUtils;
 import org.ftpclient.model.FileModel;
 import org.ftpclient.model.MyDefaultTableCellRenderer;
 import org.ftpclient.model.MyDefaultTreeCellRenderer;
+import org.ftpclient.utils.FtpCliUtils;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
@@ -12,10 +14,15 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import javax.swing.tree.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
@@ -31,8 +38,12 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     public static final String dateFormat = "yyyy/MM/dd HH:mm:ss";
     public static final SimpleDateFormat simpleDateFormat=new SimpleDateFormat(dateFormat);
     private File[] roots = File.listRoots();
+    private static boolean isConnected = false;
+    //private JTextArea message;
+    private JTextPane message;
     JTree tree;
-
+    JTree treeRight;
+    JScrollPane scrollPaneRight = new JScrollPane();
     JTable letfTable = new JTable();
     JTable rightTable = new JTable();
     private static final String[] columnNames  = {"文件名","文件大小","文件类型","最近修改"};
@@ -95,13 +106,15 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     }
 
     private void initTop() {
+        JPanel p1 = new JPanel();
+        JPanel p2 = new JPanel();
         this.setLayout(new BorderLayout());
         JPanel top = new JPanel();
         JLabel hostLabel = new JLabel("主机(H):");
         JLabel usernameLabel = new JLabel("用户名(U):");
         JLabel passwordLabel = new JLabel("密码(W):");
         JLabel portLabel = new JLabel("端口(P):");
-        JTextField hostText = new JTextField("localhost",10);
+        JTextField hostText = new JTextField("127.0.0.1",10);
         JTextField usernameText = new JTextField("",10);
         JTextField passwordText = new JTextField("",10);
         JTextField portText = new JTextField("21",5);
@@ -110,15 +123,92 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         passwordLabel.setLabelFor(passwordText);
         portLabel.setLabelFor(portText);
         JButton connect = new JButton("快速连接(Q)");
-        JTextArea message = new JTextArea(5,120);
-        message.setLineWrap(true);
+        connect.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String host = hostText.getText();
+                String username = usernameText.getText();
+                String password = passwordText.getText();
+                String port = portText.getText().equals("")?"21" : portText.getText();
+                if(StringUtils.isEmpty(host)){
+                    JOptionPane.showMessageDialog(null,"请输入主机IP地址","",JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if(StringUtils.isEmpty(username)){
+                    JOptionPane.showMessageDialog(null,"请输入用户名","",JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                if(StringUtils.isEmpty(password)){
+                    JOptionPane.showMessageDialog(null,"请输入密码","",JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+
+                FtpCliUtils  ftpCli = FtpCliUtils.createFtpCliUtils(host, Integer.parseInt(port), username, password);
+                try {
+                    ftpCli.connect();
+                    isConnected = true;
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                    //message.setText(e1.getMessage());
+                    //String text = message.getText();
+                   // message.append(text);//这行兰色
+                    StyledDocument d=message.getStyledDocument();
+                    SimpleAttributeSet attr = new SimpleAttributeSet();
+                    StyleConstants.setForeground(attr, Color.RED);
+                    try {
+                        d.insertString(d.getLength(),e1.getMessage() + "\n",attr);
+                    } catch (BadLocationException e2) {
+                        e2.printStackTrace();
+                    }
+//                    message.append("\n");
+//                    message.setForeground(Color.RED);
+//                    message.append(e1.getMessage());
+//                    message.append("\n");
+                    isConnected = false;
+                }
+                if(isConnected){
+                    //String text = message.getText();
+                    //message.append(text);//这行兰色
+                    StyledDocument d=message.getStyledDocument();
+                    SimpleAttributeSet attr = new SimpleAttributeSet();
+                    StyleConstants.setForeground(attr, Color.BLACK);
+                    try {
+                        d.insertString(d.getLength(),"状态：  成功连接服务器\n" ,attr);
+                    } catch (BadLocationException e1) {
+                        e1.printStackTrace();
+                    }
+//                    message.append("\n");
+//                    message.setForeground(Color.BLACK);
+//                    message.append("状态：  成功连接服务器");
+//                    message.append("\n");
+
+                    FileModel rootModel = new FileModel(new File("/"),"/");
+                    DefaultMutableTreeNode rootNode = new DefaultMutableTreeNode(rootModel,true);
+
+                    treeRight = new JTree(rootNode);
+                    treeRight.setShowsRootHandles(true);
+                    treeRight.setEditable(false);
+
+
+
+
+                    scrollPaneRight.getViewport().add(treeRight);
+                }
+
+            }
+        });
+        //message = new JTextArea(5,120);
+        //message = new JTextArea();
+        message = new JTextPane();
+        message.setPreferredSize(new Dimension(WIDTH - 35,80));
+        //message.setLineWrap(true);
         message.setEditable(false);
         JScrollPane js=new JScrollPane(message);
         js.setVerticalScrollBarPolicy(
                 JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
-        JPanel p1 = new JPanel();
-        JPanel p2 = new JPanel();
+
         p2.add(js);
        // p1.setLayout(new GridLayout(1,9));
         p1.setLayout(new FlowLayout(FlowLayout.LEFT));
@@ -218,15 +308,15 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         });
         tree.setCellRenderer(new MyDefaultTreeCellRenderer());
 
-        // 设置树节点可编辑
-        tree.setEditable(true);
+        // 设置树节点不可编辑
+        tree.setEditable(false);
         JScrollPane scrollPane = new JScrollPane();
+
         scrollPane.setPreferredSize(new Dimension(600,200));
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.getViewport().add(tree);
 
-        tree.setPreferredSize(scrollPane.getPreferredSize());
         leftOfBottom.add(scrollPane, BorderLayout.CENTER);
 
 
@@ -278,18 +368,18 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         right.add(rightOfBottom,BorderLayout.CENTER);
 
 
-        JTree treeRight = new JTree();
-        treeRight.setShowsRootHandles(true);
+        //JTree treeRight = new JTree();
+        //treeRight.setShowsRootHandles(true);
 
         // 设置树节点可编辑
-        treeRight.setEditable(true);
-        JScrollPane scrollPaneRight = new JScrollPane();
+        //treeRight.setEditable(false);
+        //JScrollPane scrollPaneRight = new JScrollPane();
         scrollPaneRight.setPreferredSize(new Dimension(600,200));
         scrollPaneRight.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPaneRight.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPaneRight.getViewport().add(treeRight);
 
-        treeRight.setPreferredSize(scrollPane.getPreferredSize());
+        //treeRight.setPreferredSize(scrollPaneRight.getPreferredSize());
         rightOfBottom.add(scrollPaneRight, BorderLayout.CENTER);
 
 
@@ -319,6 +409,15 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                             return;
                         }
                         DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                        if(cellVal.getName().equals("..")){
+                            File parent = cellVal.getFile().getParentFile();
+                            if(parent == null){
+                                cellVal = rootModel;
+                            }else {
+                                cellVal = new FileModel(cellVal.getFile().getParentFile(),cellVal.getFile().getParentFile().getName());
+                            }
+
+                        }
                         leftbox.addItem(cellVal.getFile().getPath());
                         leftbox.setSelectedIndex(leftbox.getItemCount() - 1);
 
@@ -338,6 +437,11 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
 
         this.add(parentCenter,BorderLayout.CENTER);
+
+
+
+
+
 
 
 
@@ -395,6 +499,9 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     private void displayLeftTable(FileModel file) {
         File parent = file.getFile();
         File[] files = parent.listFiles();
+        if(file.getFile().getPath().equals("\\")){
+            files = roots;
+        }
         if(files == null) {
             return;
         }
@@ -416,12 +523,24 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 //                    ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
 //                    ((JLabel)data[i][0]).setText(f.getName());
                     data[i][0] = new FileModel(f,f.getName());
+                    if(file.getFile().getPath().equals("\\")){
+                        data[i][0] = new FileModel(f,f.getPath());//磁盘分区不能用f.getName()，否则文件名为空
+                    }
                     data[i][1] = getFileSize(f);
                     data[i][2] = f.isDirectory() ? "文件夹":"文件";
                     data[i][3] = formatDate(f.lastModified());
                 }
 
             }
+        }else{//如果父目录下面没有文件和文件夹
+            File f = parent;
+//                    data[i][0] = new JLabel();
+//                    ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
+//                    ((JLabel)data[i][0]).setText("..");
+            data[0][0] = new FileModel(f,"..");
+            data[0][1] = getFileSize(f);
+            data[0][2] = f.isDirectory() ? "文件夹":"文件";
+            data[0][3] = formatDate(f.lastModified());
         }
         DefaultTableModel model = new DefaultTableModel(data,columnNames){
             public boolean isCellEditable(int row, int column)
@@ -526,6 +645,10 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if(e.getActionCommand().equals("退出(X)")){
             this.dispose();
+        }
+
+        if(e.getActionCommand().equals("快速连接(Q)")){
+
         }
     }
 }

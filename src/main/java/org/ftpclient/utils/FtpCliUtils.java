@@ -33,6 +33,10 @@ public class FtpCliUtils {
         this(host,21,username,password,DEFAULT_CHARSET);
     }
 
+    private FtpCliUtils(String host,int port,String username,String password){
+        this(host,port,username,password,DEFAULT_CHARSET);
+    }
+
     private FtpCliUtils(String host,int port,String username,String password,String charset){
         this.ftpClient = new FTPClient();
         this.ftpClient.setControlEncoding(charset);
@@ -51,6 +55,10 @@ public class FtpCliUtils {
      */
     public static FtpCliUtils createFtpCliUtils(String host,String username,String password){
         return new FtpCliUtils(host, username, password);
+    }
+
+    public static FtpCliUtils createFtpCliUtils(String host,int port,String username,String password){
+        return new FtpCliUtils(host,port,username, password);
     }
 
     /**
