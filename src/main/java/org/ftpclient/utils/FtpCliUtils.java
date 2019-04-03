@@ -397,6 +397,11 @@ public class FtpCliUtils {
     }
 
     public boolean changeWorkDirectory(String pathname) throws IOException{
+        if(!this.ftpClient.isConnected()){
+            return false;
+        }
+        this.ftpClient.enterLocalPassiveMode();
+        this.ftpClient.sendCommand("pwd");
         return this.ftpClient.changeWorkingDirectory(pathname);
     }
 
@@ -477,6 +482,9 @@ public class FtpCliUtils {
      * @throws IOException
      */
     public FTPFile[] listFiles() throws  IOException{
+        if(!this.ftpClient.isConnected()){
+            return null;
+        }
         return this.ftpClient.listFiles();
     }
 
@@ -487,6 +495,9 @@ public class FtpCliUtils {
      * @throws IOException
      */
     public FTPFile[] listFiles(String pathname) throws  IOException{
+        if(!this.ftpClient.isConnected()){
+            return null;
+        }
         return this.ftpClient.listFiles(pathname);
     }
 
@@ -496,6 +507,11 @@ public class FtpCliUtils {
      * @throws IOException
      */
     public FTPFile[] listDirectories() throws IOException{
+        if(!this.ftpClient.isConnected()){
+            return null;
+        }
+        this.ftpClient.enterLocalPassiveMode();
+        this.ftpClient.sendCommand("pwd");
         return this.ftpClient.listDirectories();
     }
 
@@ -506,6 +522,10 @@ public class FtpCliUtils {
      * @throws IOException
      */
     public FTPFile[] listDirectories(String pathname) throws IOException{
+        if(!this.ftpClient.isConnected()){
+            return null;
+        }
+        this.ftpClient.enterLocalPassiveMode();
         return this.ftpClient.listDirectories(pathname);
     }
 

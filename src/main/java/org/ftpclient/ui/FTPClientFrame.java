@@ -247,6 +247,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                         }
                     });
 
+                    treeRight.setCellRenderer(new MyDefaultTreeCellRenderer());
                     scrollPaneRight.getViewport().add(treeRight);
                 }
 
