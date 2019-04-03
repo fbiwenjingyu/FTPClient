@@ -1,5 +1,6 @@
 package org.ftpclient;
 
+import org.apache.commons.net.ftp.FTPFile;
 import org.ftpclient.utils.FtpCliUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -36,7 +37,20 @@ public class FtpCliTest {
 
     @Test
     public void uploadFileToDailyDir() throws IOException {
-        String path = ftpCli.uploadFileToDailyDir(file.getName(), new FileInputStream(file));
-        ftpCli.downloadFileFromDailyDir(path , new FileOutputStream(new File("testFtp.txt")));
+        //String path = ftpCli.uploadFileToDailyDir(file.getName(), new FileInputStream(file));
+       // ftpCli.downloadFileFromDailyDir(path , new FileOutputStream(new File("testFtp.txt")));
+
+        //ftpCli.changeWorkDirectory("/");
+        //ftpCli.changeWorkDirectory("apache-ant-1.9.7");
+        //ftpCli.changeWorkDirectory("manual");
+        ftpCli.changeWorkDirectory("/apache-ant-1.9.7/manual");
+        FTPFile[] directories = ftpCli.listDirectories();
+        for(FTPFile f : directories){
+            System.out.println(f.getName());
+        }
+        System.out.println("working directory :" + ftpCli.printWorkingDirectory());
+        System.out.println("parent directory :" + ftpCli.printParentDirectory());
     }
+
+
 }

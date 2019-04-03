@@ -396,6 +396,10 @@ public class FtpCliUtils {
         return false;
     }
 
+    public boolean changeWorkDirectory(String pathname) throws IOException{
+        return this.ftpClient.changeWorkingDirectory(pathname);
+    }
+
     /**
      * <p>Description:[返回当前工作目录的上一级目录]</p>
      * @return java.lang.String 当前工作目录的父目录
@@ -467,8 +471,49 @@ public class FtpCliUtils {
         }
     }
 
+    /**
+     * 获取服务器文件列表
+     * @return
+     * @throws IOException
+     */
+    public FTPFile[] listFiles() throws  IOException{
+        return this.ftpClient.listFiles();
+    }
 
+    /**
+     * 获取服务器文件列表
+     * @param pathname 路径名
+     * @return
+     * @throws IOException
+     */
+    public FTPFile[] listFiles(String pathname) throws  IOException{
+        return this.ftpClient.listFiles(pathname);
+    }
 
+    /**
+     * 获取服务器目录列表
+     * @return
+     * @throws IOException
+     */
+    public FTPFile[] listDirectories() throws IOException{
+        return this.ftpClient.listDirectories();
+    }
 
+    /**
+     * 获取服务器目录列表
+     * @param pathname
+     * @return
+     * @throws IOException
+     */
+    public FTPFile[] listDirectories(String pathname) throws IOException{
+        return this.ftpClient.listDirectories(pathname);
+    }
 
+    public String getFtpBasePath() {
+        return ftpBasePath;
+    }
+
+    public void setFtpBasePath(String ftpBasePath) {
+        this.ftpBasePath = ftpBasePath;
+    }
 }
