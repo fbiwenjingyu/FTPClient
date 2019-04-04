@@ -27,19 +27,21 @@ public class MyDefaultTreeCellRenderer extends DefaultTreeCellRenderer {
         }else if(value instanceof RemoteFileModel){
             RemoteFileModel file = (RemoteFileModel) value;
             File tempfile = null;
-            try {
-                tempfile = File.createTempFile("tempfile_",file.getFile().getName());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Icon icon = getSmallIcon(tempfile);
-            String txt = ((RemoteFileModel)value).getName(); // 从节点读取文本
-            if(tempfile!=null){
-                tempfile.delete();
-            }
+            //try {
+//                tempfile = File.createTempFile("tempfile_",file.getName());
+//                Icon icon = getSmallIcon(tempfile);
+//                String txt = ((RemoteFileModel)value).getName(); // 从节点读取文本
+//                if(tempfile!=null){
+//                    tempfile.delete();
+//                }
 
-            setIcon(icon);// 设置图片
-            setText(txt);// 设置文本
+                setIcon(folderIcon);// 设置图片
+                setText(file.getName());// 设置文本
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                setIcon(folderIcon);
+            //}
+
             return this;
         }else {
             setIcon(folderIcon);

@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class FtpCliUtils {
     private static final String DEFAULT_CHARSET = "UTF-8";
-    private static final int DEFAULT_TIMEOUT = 60 * 1000;
+    private static final int DEFAULT_TIMEOUT = 2 * 60 * 60 * 1000;
     private static final String DAILY_FILE_PATH = "dailyFilePath";
     private final String host;
     private final int port;
@@ -106,6 +106,8 @@ public class FtpCliUtils {
 
         this.ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
         this.ftpClient.enterLocalPassiveMode();
+        this.setTimeOut(DEFAULT_TIMEOUT,DEFAULT_TIMEOUT,DEFAULT_TIMEOUT);
+        this.ftpClient.setKeepAlive(true);
         initFtpBasePath();
     }
 
@@ -368,10 +370,13 @@ public class FtpCliUtils {
      * @return java.lang.String 当前所处的工作目录
      */
     public String printWorkingDirectory(){
-        if(!this.ftpClient.isConnected()){
-            return "";
-        }
+        //if(!this.ftpClient.isConnected()){
+
+
+        //}
         try {
+//            createFtpCliUtils(this.host,this.port,this.username,this.password);
+//            connect();
             return this.ftpClient.printWorkingDirectory();
         } catch (IOException e) {
             e.printStackTrace();
@@ -397,11 +402,12 @@ public class FtpCliUtils {
     }
 
     public boolean changeWorkDirectory(String pathname) throws IOException{
-        if(!this.ftpClient.isConnected()){
-            return false;
-        }
+        //if(!this.ftpClient.isConnected()){
+//        createFtpCliUtils(this.host,this.port,this.username,this.password);
+//        connect();
+        //}
         this.ftpClient.enterLocalPassiveMode();
-        this.ftpClient.sendCommand("pwd");
+        //this.ftpClient.sendCommand("pwd");
         return this.ftpClient.changeWorkingDirectory(pathname);
     }
 
@@ -507,11 +513,12 @@ public class FtpCliUtils {
      * @throws IOException
      */
     public FTPFile[] listDirectories() throws IOException{
-        if(!this.ftpClient.isConnected()){
-            return null;
-        }
+        //if(!this.ftpClient.isConnected()){
+//        createFtpCliUtils(this.host,this.port,this.username,this.password);
+//        connect();
+        //}
         this.ftpClient.enterLocalPassiveMode();
-        this.ftpClient.sendCommand("pwd");
+        //this.ftpClient.sendCommand("pwd");
         return this.ftpClient.listDirectories();
     }
 
@@ -522,10 +529,12 @@ public class FtpCliUtils {
      * @throws IOException
      */
     public FTPFile[] listDirectories(String pathname) throws IOException{
-        if(!this.ftpClient.isConnected()){
-            return null;
-        }
+        //if(!this.ftpClient.isConnected()){
+//        createFtpCliUtils(this.host,this.port,this.username,this.password);
+//        connect();
+        //}
         this.ftpClient.enterLocalPassiveMode();
+        //this.ftpClient.sendCommand("pwd");
         return this.ftpClient.listDirectories(pathname);
     }
 
@@ -535,5 +544,14 @@ public class FtpCliUtils {
 
     public void setFtpBasePath(String ftpBasePath) {
         this.ftpBasePath = ftpBasePath;
+    }
+
+    public FTPFile getFtpFileByPath(String path){
+        try {
+            return this.ftpClient.mlistFile(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

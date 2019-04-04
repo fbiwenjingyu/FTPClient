@@ -35,7 +35,7 @@ public class RemoteFileModel{
     }
 
     public String getAbsolutePath(){
-        if(path.equals("/")) return path;
+        //if(name.equals("/")) return path;
         if(path.lastIndexOf('/') == path.length() - 1){
             return path + name;
         }else {
