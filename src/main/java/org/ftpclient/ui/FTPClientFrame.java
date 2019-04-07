@@ -213,6 +213,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                             DefaultMutableTreeNode node = new DefaultMutableTreeNode(nodeModel,true);
                             rootNode.add(node);
                             boxRight.addItem(rootFile.getName());
+                            boxRight.
                             boxRight.addItemListener(new ItemListener() {
                                 @Override
                                 public void itemStateChanged(ItemEvent e) {
@@ -534,7 +535,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
             public void mouseClicked(MouseEvent e) {
                 if(e.getClickCount() == 2){
                     int row =((JTable)e.getSource()).rowAtPoint(e.getPoint()); //获得行位置
-                    RemoteFileModel cellVal = (RemoteFileModel) rightDataModel.getValueAt(row, 0);
+                    RemoteFileModel cellVal = (RemoteFileModel) rightTable.getValueAt(row, 0);
                     System.out.println("clicked cell value is : " + cellVal);
                     if(cellVal != null){
                         if(cellVal.getFile().isFile()){
@@ -703,9 +704,10 @@ public class FTPClientFrame extends JFrame implements ActionListener {
 
     private void displayRightTable(RemoteFileModel file,FtpCliUtils cliUtils) {
         try {
+
             FTPFile parent = file.getFile();
             FTPFile[] files = cliUtils.listFiles();
-            if(file.getFile().getName().equals("\\")){
+            if(file.getFile().getName().equals("/")){
                 files[0] = rootFile;
             }
             if(files == null) {
@@ -729,7 +731,8 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                         }
                         data[i][1] = getRemoteFileSize(f);
                         data[i][2] = f.isDirectory() ? "文件夹":"文件";
-                        data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
+                        //data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
+                        data[i][3] = "";
                     }
 
                 }
