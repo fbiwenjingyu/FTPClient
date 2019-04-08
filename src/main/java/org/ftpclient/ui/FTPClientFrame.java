@@ -53,6 +53,10 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     FtpCliUtils  ftpCli;
     RemoteFileModel remoteFileModel;
     private static final String[] columnNames  = {"文件名","文件大小","文件类型","最近修改"};
+    String host;
+    String port;
+    String username;
+    String password;
     public static void main(String[] args) {
         FTPClientFrame frame = new FTPClientFrame();
     }
@@ -132,10 +136,10 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         connect.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String host = hostText.getText();
-                String username = usernameText.getText();
-                String password = passwordText.getText();
-                String port = portText.getText().equals("")?"21" : portText.getText();
+                host = hostText.getText();
+                username = usernameText.getText();
+                password = passwordText.getText();
+                port = portText.getText().equals("")?"21" : portText.getText();
                 if(StringUtils.isEmpty(host)){
                     JOptionPane.showMessageDialog(null,"请输入主机IP地址","",JOptionPane.ERROR_MESSAGE);
                     return;
@@ -205,6 +209,21 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                     treeRight.setShowsRootHandles(true);
                     treeRight.setEditable(false);
 
+                    boxRight.addItem(rootFile.getName());
+
+                    boxRight.addItemListener(new ItemListener() {
+                        @Override
+                        public void itemStateChanged(ItemEvent e) {
+                            String item = (String) e.getItem();
+                            System.out.println("selected item : " + item);
+                            DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
+                            //visitAllNodes(root,item);
+                            // displayRightTable(new RemoteFileModel(ftpCli.getFtpFileByPath(item),item),ftpCli);
+                        }
+                    });
+
+
+
                     try {
 
                         FTPFile[] ftpFiles = ftpCli.listDirectories();
@@ -212,18 +231,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                             RemoteFileModel nodeModel = new RemoteFileModel(f,f.getName(),ftpCli.printWorkingDirectory());
                             DefaultMutableTreeNode node = new DefaultMutableTreeNode(nodeModel,true);
                             rootNode.add(node);
-                            boxRight.addItem(rootFile.getName());
-                            boxRight.
-                            boxRight.addItemListener(new ItemListener() {
-                                @Override
-                                public void itemStateChanged(ItemEvent e) {
-                                    String item = (String) e.getItem();
-                                    System.out.println("selected item : " + item);
-                                    DefaultMutableTreeNode root = (DefaultMutableTreeNode) tree.getModel().getRoot();
-                                    //visitAllNodes(root,item);
-                                    displayRightTable(new RemoteFileModel(ftpCli.getFtpFileByPath(item),item),ftpCli);
-                                }
-                            });
+
                         }
                     } catch (IOException e1) {
                         e1.printStackTrace();
@@ -544,13 +552,27 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                         DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeRight.getModel().getRoot();
                         if(cellVal.getName().equals("..")){
                             String parentPath = cellVal.getAbsolutePath().substring(0,cellVal.getAbsolutePath().lastIndexOf("/"));
+//                            if(parentPath.equals("")){
+//                                parentPath = "/";
+//                                //cellVal = remoteFileModel;
+//                            }
                             boxRight.addItem(parentPath);
                             boxRight.setSelectedIndex(boxRight.getItemCount() - 1);
+
                         }else{
                             boxRight.addItem(cellVal.getAbsolutePath());
                             boxRight.setSelectedIndex(boxRight.getItemCount() - 1);
                         }
+                        try {
+                            ftpCli = FtpCliUtils.createFtpCliUtils(host,Integer.parseInt(port),username,password);
+                            ftpCli.connect();
+                            String absolutePath = cellVal.getAbsolutePath();
 
+                            ftpCli.changeWorkDirectory(absolutePath);
+                            displayRightTable(cellVal,ftpCli);
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
 
                     }
 
@@ -718,14 +740,14 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                 for(int i=0;i<files.length + 1;i++){
                     if(i==0){
                         FTPFile f = parent;
-                        data[i][0] = new RemoteFileModel(f,"..");
+                        data[i][0] = new RemoteFileModel(f,"..",cliUtils.printWorkingDirectory());
                         data[i][1] = getRemoteFileSize(f);
                         data[i][2] = f.isDirectory() ? "文件夹":"文件";
                         //data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
                         data[i][3] = "";
                     }else {
                         FTPFile f = files[i - 1];
-                        data[i][0] = new RemoteFileModel(f,f.getName());
+                        data[i][0] = new RemoteFileModel(f,f.getName(),cliUtils.printWorkingDirectory());
                         if(file.getFile().getName().equals("\\")){
                             data[i][0] = new RemoteFileModel(f,f.getName());//磁盘分区不能用f.getName()，否则文件名为空
                         }
@@ -741,7 +763,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
     //                    data[i][0] = new JLabel();
     //                    ((JLabel)data[i][0]).setIcon(getSmallIcon(f));
     //                    ((JLabel)data[i][0]).setText("..");
-                data[0][0] = new RemoteFileModel(f,"..");
+                data[0][0] = new RemoteFileModel(f,"..",cliUtils.printWorkingDirectory());
                 data[0][1] = getRemoteFileSize(f);
                 data[0][2] = f.isDirectory() ? "文件夹":"文件";
                 data[0][3] = formatDate(f.getTimestamp().getTimeInMillis());
