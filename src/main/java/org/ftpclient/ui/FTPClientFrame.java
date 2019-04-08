@@ -743,8 +743,14 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                         data[i][0] = new RemoteFileModel(f,"..",cliUtils.printWorkingDirectory());
                         data[i][1] = getRemoteFileSize(f);
                         data[i][2] = f.isDirectory() ? "文件夹":"文件";
-                        //data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
-                        data[i][3] = "";
+                        if(f.getTimestamp() == null){
+                            data[i][3] = "";
+                        }else{
+                            data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
+                        }
+
+
+                        //data[i][3] = "";
                     }else {
                         FTPFile f = files[i - 1];
                         data[i][0] = new RemoteFileModel(f,f.getName(),cliUtils.printWorkingDirectory());
@@ -753,8 +759,11 @@ public class FTPClientFrame extends JFrame implements ActionListener {
                         }
                         data[i][1] = getRemoteFileSize(f);
                         data[i][2] = f.isDirectory() ? "文件夹":"文件";
-                        //data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
-                        data[i][3] = "";
+                        if(f.getTimestamp() == null){
+                            data[i][3] = "";
+                        }else{
+                            data[i][3] = formatDate(f.getTimestamp().getTimeInMillis());
+                        }
                     }
 
                 }
