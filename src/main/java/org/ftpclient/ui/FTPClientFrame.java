@@ -126,7 +126,7 @@ public class FTPClientFrame extends JFrame implements ActionListener {
         JLabel portLabel = new JLabel("端口(P):");
         JTextField hostText = new JTextField("127.0.0.1",10);
         JTextField usernameText = new JTextField("",10);
-        JTextField passwordText = new JTextField("",10);
+        JPasswordField passwordText = new JPasswordField("",10);
         JTextField portText = new JTextField("21",5);
         hostLabel.setLabelFor(hostText);
         usernameLabel.setLabelFor(usernameText);
